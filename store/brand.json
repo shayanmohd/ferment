@@ -1,0 +1,39 @@
+{
+  "name": "Ferment",
+  "tagline": "A lab notebook for living food.",
+  "bg": "#F3EFE4",
+  "fg": "#221D16",
+  "accent": "#97551A",
+  "iconbg": "#F3EFE4",
+  "featurebg": "#F3EFE4",
+  "font": "/Users/sherry/Documents/DEVPROJECTS/ferment/store/display.ttf",
+  "mono": "/Users/sherry/Documents/DEVPROJECTS/ferment/store/mono.ttf",
+  "mark": [
+    {
+      "t": "rect",
+      "x": 38,
+      "y": 19,
+      "w": 32,
+      "h": 9,
+      "r": 2,
+      "c": "fg"
+    },
+    {
+      "t": "rect",
+      "x": 31,
+      "y": 29,
+      "w": 46,
+      "h": 60,
+      "r": 10,
+      "c": "accent"
+    },
+    {
+      "t": "rect",
+      "x": 32.5,
+      "y": 66,
+      "w": 43,
+      "h": 5,
+      "c": "bg"
+    }
+  ]
+}
