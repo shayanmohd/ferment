@@ -4,7 +4,11 @@
 const App = (() => {
   const $ = s => document.querySelector(s);
   const $$ = s => Array.prototype.slice.call(document.querySelectorAll(s));
-  const esc = Charts.esc;
+  // Authored recipe prose writes temperatures as {18C}. Convert them to the reader's unit here, in the
+  // one helper every string passes through, so a Fahrenheit user never sees "64F to 72F" in a chip
+  // beside "between 18C and 22C" in the task under it.
+  const esc = (s) => Charts.esc(String(s).replace(/\{(\d+(?:\.\d+)?)C\}/g,
+    (_, c) => Store.showTemp(parseFloat(c), 0)));
 
   let view = 'kitchen';
   let stack = [];               // pushed pages, most recent last
