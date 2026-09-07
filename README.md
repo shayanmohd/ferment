@@ -85,6 +85,14 @@ edges, persistence and the export and import round trip, and the safe area inset
 script asserts as it goes and fails the run on any console error. `--reduced-motion` runs the same paths
 with animation off.
 
+`review-*.js` is the independent second set, written for the 1.0.1 review rather than alongside the fixes.
+`review-00-make100.js` runs against a checkout of the shipped 1.0.0 (`git archive <first commit> web`),
+drives it with real clicks and dumps its `localStorage` record and IndexedDB photographs to disk;
+`review-02-upgrade.js` then loads this build on top of that dump and proves nothing was lost. The rest
+cover the back and lifecycle hooks, safe areas measured rather than eyeballed, a WCAG contrast sweep of
+every visible text and control, the input edges, and restoring a backup written by a build that is not
+this one.
+
 ## What is deliberately not here
 
 No community, no recipe forking between users and no outcome aggregation: those need a server and an

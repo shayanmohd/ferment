@@ -95,7 +95,9 @@ const Charts = (() => {
     const pts = points.map(p => ({ at: p.hours, value: p.ratio }));
     const s = series(pts, {
       band: null, zeroLine: 1, minPad: 0.25, label: 'Rise over time',
-      fmt: v => (Math.round(v * 10) / 10) + 'x',
+      // Two places, the same as the reading and the caption above it. One place labelled a
+      // 2.46x peak as 2.5x, next to a caption that said 2.46x.
+      fmt: v => Store.round(v, 2) + 'x',
       x0: 'Feed', x1: Store.spanText(pts[pts.length - 1].at) + ' later'
     });
     return s;

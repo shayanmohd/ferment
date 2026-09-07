@@ -47,9 +47,11 @@ const Store = (() => {
     b.stageStartedAt = b.stageStartedAt || b.startedAt;
     b.stageIndex = Math.max(0, parseInt(b.stageIndex, 10) || 0);
     b.state = b.state === 'done' || b.state === 'binned' ? b.state : 'active';
+    const rec = Content.recipe(b.recipeId);
+    // A stage number past the end of the plan is a stage the screens would read as undefined.
+    if (rec && b.stageIndex > rec.stages.length - 1) b.stageIndex = rec.stages.length - 1;
     if (!b.scale || typeof b.scale.amount !== 'number' || !(b.scale.amount > 0)) {
-      const r = Content.recipe(b.recipeId);
-      b.scale = { key: r ? r.basis.key : 'amount', amount: r ? r.basis.def : 1000 };
+      b.scale = { key: rec ? rec.basis.key : 'amount', amount: rec ? rec.basis.def : 1000 };
     }
     if (!b.title) b.title = (Content.recipe(b.recipeId) || {}).title || 'Batch';
     return b;
@@ -473,13 +475,23 @@ const Store = (() => {
     else s = Math.round(a / (30 * DAY)) + ' months';
     return ms >= 0 ? 'in ' + s : s + ' ago';
   }
+  /** Whole months between two dates, counted on the calendar rather than divided out of days. */
+  function monthsApart(a, b) {
+    const x = new Date(a), y = new Date(b);
+    let m = (y.getFullYear() - x.getFullYear()) * 12 + (y.getMonth() - x.getMonth());
+    if (y.getDate() < x.getDate()) m--;
+    return m;
+  }
   function ageText(ts) {
-    const d = Math.floor((Date.now() - ts) / DAY);
+    const now = Date.now();
+    const d = Math.floor((now - ts) / DAY);
     if (d < 1) return 'started today';
     if (d < 60) return d + (d === 1 ? ' day old' : ' days old');
-    const mo = Math.floor(d / 30.44);
+    // Counted on the calendar: dividing days by 30.44 called a jar on its first birthday
+    // eleven months old, and could land on "1 year and 12 months".
+    const mo = Math.max(2, monthsApart(ts, now));
     if (mo < 24) return mo + (mo === 1 ? ' month old' : ' months old');
-    const y = Math.floor(d / 365.25), rm = Math.round((d - y * 365.25) / 30.44);
+    const y = Math.floor(mo / 12), rm = mo % 12;
     return y + (y === 1 ? ' year' : ' years') +
            (rm ? ' and ' + rm + (rm === 1 ? ' month' : ' months') : '') + ' old';
   }

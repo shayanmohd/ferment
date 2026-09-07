@@ -1,5 +1,5 @@
 A new look, drawn around the jar. Every batch and culture now shows a jar filled to where it actually is, and the Kitchen opens on a shelf with the date and what is next.
 
-Fixed: a fast double tap could start two batches or skip a stage. Retired cultures no longer read as hungry. The camera comes back when you return to the app. Ages read correctly at one month. Temperature charts label the reading you took.
+Fixed: a fast double tap could start two batches, skip a stage, or save the same photograph twice. Retired cultures no longer read as hungry. The camera comes back when you return to the app. Ages and chart labels read the way the readings do.
 
 Your notebook is untouched by this update.

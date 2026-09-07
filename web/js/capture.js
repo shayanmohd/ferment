@@ -7,6 +7,9 @@ const Capture = (() => {
   let stream = null, owner = null, ctx = null, mode = 'journal', ghostOn = true;
   let marks = { bottom: 0.82, base: 0.55, now: 0.34 };
   let dragging = null, onDone = null, ready = false;
+  /* Writing a photograph is asynchronous. Two taps inside that window used to save two copies
+     and then throw, because the second landed after the screen had closed and cleared its owner. */
+  let saving = false;
 
   const uid = () => 'p' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
   const el = {};
@@ -34,7 +37,7 @@ const Capture = (() => {
     bind();
     owner = o.owner; ctx = o; onDone = o.onDone || null;
     mode = o.mode || 'journal';
-    ready = false;
+    ready = false; saving = false;
     if (owner && owner.riseRef) {
       marks.bottom = owner.riseRef.bottomY;
       marks.base = owner.riseRef.baseY;
@@ -54,7 +57,7 @@ const Capture = (() => {
     stop();
     if (el.screen) el.screen.hidden = true;
     document.body.classList.remove('is-capturing');
-    owner = null; ctx = null; onDone = null;
+    owner = null; ctx = null; onDone = null; saving = false;
   }
 
   function start() {
@@ -215,6 +218,7 @@ const Capture = (() => {
   }
 
   function shoot() {
+    if (saving) return;
     if (mode === 'rise' && !(owner && owner.riseRef)) { mode = 'mark'; renderChrome(); return; }
     const data = grabFrame();
     if (!data) {
@@ -225,30 +229,37 @@ const Capture = (() => {
   }
 
   function commit(data) {
+    if (saving || !owner || !ctx) return;
+    saving = true;
     const pid = uid();
+    // Held locally: close() clears all of these before the write comes back.
+    const who = owner, type = ctx.ownerType, how = mode, done = onDone;
+    const ref = who.riseRef, at = marks.bottom, base = marks.base, now = marks.now;
     Photos.put(pid, data).then(() => {
       let entry;
-      if (mode === 'mark') {
-        Store.setRiseRef(owner, { bottomY: marks.bottom, baseY: marks.base });
+      if (how === 'mark') {
+        Store.setRiseRef(who, { bottomY: at, baseY: base });
         entry = { kind: 'rise', value: 1, photoId: pid, text: 'Level marked at the feed' };
-      } else if (mode === 'rise') {
-        const ratio = Store.riseRatio(owner.riseRef, marks.now);
+      } else if (how === 'rise') {
+        const ratio = Store.riseRatio(ref, now);
         entry = { kind: 'rise', value: Number(Store.round(ratio, 2)), photoId: pid,
-                  text: Store.spanText((Date.now() - owner.riseRef.at) / Store.HOUR) + ' after the feed' };
+                  text: Store.spanText((Date.now() - ref.at) / Store.HOUR) + ' after the feed' };
       } else {
         entry = { kind: 'photo', photoId: pid, text: '' };
       }
-      if (ctx.ownerType === 'batch') Store.addBatchLog(owner.id, entry);
-      else Store.addCultureLog(owner.id, entry);
+      if (type === 'batch') Store.addBatchLog(who.id, entry);
+      else Store.addCultureLog(who.id, entry);
       if (window.App && App.buzz) App.buzz(18);
-      const done = onDone;
       close();
       if (done) done(entry);
+    }).catch(() => {
+      saving = false;
+      fail('That photograph could not be saved on this device.');
     });
   }
 
   function pickFile(file) {
-    if (!file) return;
+    if (!file || saving) return;
     Photos.fromFile(file, 900).then(commit).catch(() => {
       el.fbNote.textContent = 'That file could not be read as a photograph.';
     });

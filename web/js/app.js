@@ -266,7 +266,9 @@ const App = (() => {
       next = st.name + ' is in its window, day ' + Math.max(1, Math.round(inStage)) + ' of about ' + Math.round(hard);
       if (inStage > hard) { next = st.name + ' has run past its window. Check it.'; late = true; }
     } else {
-      next = st.name + ', ' + Store.relative(b.stageStartedAt + soft * Store.DAY) + ' to the window';
+      // "in 10 days" is right on its own but reads badly inside "... to the window".
+      next = st.name + ', ' + Store.relative(b.stageStartedAt + soft * Store.DAY).replace(/^in /, '') +
+             ' to the window';
     }
     let pips = '';
     for (let i = 0; i < r.stages.length; i++)
