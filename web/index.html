@@ -17,7 +17,7 @@
   <section class="screen" id="s-welcome" hidden>
     <div class="scroller pad">
       <div class="welcome">
-        <svg class="wordmark" viewBox="0 0 24 24" aria-hidden="true"><g id="wm"></g></svg>
+        <div class="wordmark" id="wm"></div>
         <h1 class="serif xl">Ferment</h1>
         <p class="lede">A lab notebook for the living things in your kitchen. Batches with real
           timelines, cultures with real ages, and numbers you write down instead of guessing at.</p>
@@ -32,14 +32,18 @@
   <!-- ==================== kitchen ==================== -->
   <section class="view" id="v-kitchen" hidden>
     <div class="scroller">
-      <header class="vhead">
+      <header class="shelf grain">
         <div>
           <p class="eyebrow" id="kDate"></p>
           <h1 class="serif xl">Kitchen</h1>
+          <p class="shelf-line" id="kLine"></p>
         </div>
-        <button class="iconbtn" id="settingsBtn" aria-label="Settings">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.6 7.6h8M17 7.6h3.4M3.6 16.4h3.4M12.6 16.4h7.8"/><circle cx="14" cy="7.6" r="2.6"/><circle cx="9.6" cy="16.4" r="2.6"/></svg>
-        </button>
+        <div class="shelf-right">
+          <button class="iconbtn" id="settingsBtn" aria-label="Settings">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.6 7.6h8M17 7.6h3.4M3.6 16.4h3.4M12.6 16.4h7.8"/><circle cx="14" cy="7.6" r="2.6"/><circle cx="9.6" cy="16.4" r="2.6"/></svg>
+          </button>
+          <div class="shelf-jar" id="kJar"></div>
+        </div>
       </header>
       <div id="kBody"></div>
     </div>
@@ -48,7 +52,7 @@
   <!-- ==================== recipes ==================== -->
   <section class="view" id="v-recipes" hidden>
     <div class="scroller">
-      <header class="vhead">
+      <header class="vhead viewband grain">
         <div>
           <p class="eyebrow">Twelve, in the order they get harder</p>
           <h1 class="serif xl">The ladder</h1>
@@ -61,7 +65,7 @@
   <!-- ==================== cultures ==================== -->
   <section class="view" id="v-cultures" hidden>
     <div class="scroller">
-      <header class="vhead">
+      <header class="vhead viewband grain">
         <div>
           <p class="eyebrow">Things that outlive their batches</p>
           <h1 class="serif xl">Cultures</h1>
@@ -74,7 +78,7 @@
   <!-- ==================== guide ==================== -->
   <section class="view" id="v-guide" hidden>
     <div class="scroller">
-      <header class="vhead">
+      <header class="vhead viewband grain">
         <div>
           <p class="eyebrow">Read this part before the first jar</p>
           <h1 class="serif xl">Guide</h1>

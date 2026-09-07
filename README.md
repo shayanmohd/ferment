@@ -27,9 +27,11 @@ low acid canning, are deliberately out of scope and signposted to the people who
   degrees warmer, clamped), the rise ratio arithmetic, the agenda of what is due, and the reminder plan.
 - `js/photos.js` keeps journal thumbnails in IndexedDB, because a year of jar photographs does not fit in
   `localStorage`. Photos are downscaled to 900px on the long edge before they are stored.
-- `js/charts.js` draws the grid paper charts, the feeding ring, the lineage tree and the six triage plates.
-  Every plate is SVG generated in code, including the seeded noise in the mold hairs, so nothing here is
-  model generated or licensed.
+- `js/charts.js` draws the grid paper charts, the lineage tree, the empty state illustrations, the six
+  triage plates, and the jar: the app's signature element, a glass jar lit from inside whose level is a
+  reading and whose bubbles rise. It is the same drawing as the launcher icon in `store/icon.svg`.
+  Every one of them is SVG generated in code, including the seeded noise in the mold hairs, so nothing
+  here is model generated or licensed.
 - `js/capture.js` is the camera: a live preview with the previous photograph ghosted over it for a
   consistent angle, plus the draggable height lines. There is no computer vision. You place the lines and
   the app does the arithmetic between them.
@@ -43,8 +45,8 @@ app's assets by the `syncWebAssets` Gradle task on every build.
 
 `docs/` is the GitHub Pages site: landing page, privacy policy, and a playable copy of the app.
 
-`store/` holds the brand spec, the screenshot spec and its seed data, the generated Play assets and the
-listing copy.
+`store/` holds the hand-written brand sources (`icon.svg` and `feature.html`), the screenshot spec and its
+seed data, the rendered Play assets and the listing copy.
 
 ## Build
 
@@ -58,9 +60,9 @@ Signing reads `android/keystore.properties`, which is not in this repository.
 ## Regenerate the assets
 
 ```sh
-python _shiptools/brand.py store/brand.json --out store --res android/app/src/main/res
+node _shiptools/render-brand.js ferment          # store/icon.svg and store/feature.html -> icons, feature, preview
 python _shiptools/privacy.py store/policy.json --out docs/privacy-policy.html
-python3 -m http.server 8744 --directory web
+python3 -m http.server 8821 --directory web
 node _shiptools/shots.js store/shots.json
 rsync -a --delete web/ docs/play/
 cp store/screenshots/*.png docs/shots/
@@ -68,6 +70,20 @@ cp store/screenshots/*.png docs/shots/
 
 `docs/privacy-policy.html` is generated, so edit `store/policy.json` rather than the HTML. The screenshot
 seed lives in `store/seed.js` and is inlined into `store/shots.json`.
+
+## Tests
+
+`test/` holds the drive scripts used to hunt bugs before each release. Serve the app and run them:
+
+```sh
+python3 -m http.server 8821 --directory web
+node _shiptools/drive.js http://127.0.0.1:8821/index.html test/02-happy.js --out test/shots
+```
+
+They cover first run, the whole happy path, an upgrade from a 1.0.0 record, the input and double tap
+edges, persistence and the export and import round trip, and the safe area insets on every screen. Every
+script asserts as it goes and fails the run on any console error. `--reduced-motion` runs the same paths
+with animation off.
 
 ## What is deliberately not here
 

@@ -16,6 +16,13 @@ const App = (() => {
   const PAGES = { batch: '#s-batch', culture: '#s-culture', recipe: '#s-recipe',
                   topic: '#s-topic', settings: '#s-settings' };
 
+  /* One stroke language for every icon in the app: 1.6 units, round caps, round joins. */
+  const ICON = {
+    close: '<svg viewBox="0 0 24 24" aria-hidden="true" class="ic"><path d="M6.6 6.6 17.4 17.4M17.4 6.6 6.6 17.4"/></svg>',
+    minus: '<svg viewBox="0 0 24 24" aria-hidden="true" class="ic"><path d="M6 12h12"/></svg>',
+    plus:  '<svg viewBox="0 0 24 24" aria-hidden="true" class="ic"><path d="M12 6v12M6 12h12"/></svg>'
+  };
+
   const GUIDE_GLYPH =
     '<path d="M4.4 4.4h5.9c1 0 1.7.8 1.7 1.8v13.4c0-1-.7-1.8-1.7-1.8H4.4z"/>' +
     '<path d="M19.6 4.4h-5.9c-1 0-1.7.8-1.7 1.8v13.4c0-1 .7-1.8 1.7-1.8h5.9z"/>';
@@ -115,8 +122,10 @@ const App = (() => {
   }
 
   /* ---------- the sheet ---------- */
+  let sheetSeq = 0;
   function openSheet(o) {
     sheetState = o;
+    const mine = ++sheetSeq;
     $('#sheetTitle').textContent = o.title;
     $('#sheetBody').innerHTML = o.body || '';
     const foot = $('#sheetFoot');
@@ -125,13 +134,27 @@ const App = (() => {
       const b = document.createElement('button');
       b.className = 'btn' + (a.kind === 'ghost' ? ' ghost' : a.kind === 'danger' ? ' ghost danger' : '');
       b.textContent = a.label;
-      b.addEventListener('click', () => a.on && a.on());
+      // A fast double tap delivers both taps before the closing sheet has left the screen, which
+      // used to start two batches from one form. An action that closed the sheet cannot run twice.
+      b.addEventListener('click', () => {
+        if (sheetSeq !== mine || $('#sheet').hidden) return;
+        if (a.on) a.on();
+      });
       foot.appendChild(b);
     });
     $('#sheet').hidden = false;
     if (o.onOpen) o.onOpen($('#sheetBody'));
   }
   function closeSheet() { $('#sheet').hidden = true; sheetState = null; }
+
+  /** True at most once per window for a given key, so a repeated tap writes one entry. */
+  const lastTap = {};
+  function firstTap(key, ms) {
+    const t = Date.now();
+    if (lastTap[key] && t - lastTap[key] < (ms || 700)) return false;
+    lastTap[key] = t;
+    return true;
+  }
 
   const vessel = (glyph, cls) =>
     '<svg class="' + (cls || 'vessel') + '" viewBox="0 0 24 24" aria-hidden="true">' + Content.glyph(glyph) + '</svg>';
@@ -145,27 +168,42 @@ const App = (() => {
     const body = $('#kBody');
     const bs = Store.activeBatches();
     const cs = Store.liveCultures();
+    const ag = Store.agenda(9 * Store.DAY).slice(0, 6);
+
+    /* The shelf. The jar here is the app's mark, the same object as the launcher icon, so it
+       is drawn the same way every time. What is actually due is said in words beside it. */
+    let line;
+    if (!bs.length && !cs.length) {
+      line = 'Nothing is alive in here yet.';
+    } else {
+      const soon = ag[0];
+      if (!soon) line = countLine(bs.length, cs.length) + ' Nothing needs you in the next few days.';
+      else if (soon.at < Date.now()) line = countLine(bs.length, cs.length) + ' ' + soon.owner + ' is overdue.';
+      else line = countLine(bs.length, cs.length) + ' Next up, ' + soon.owner + ' ' + Store.relative(soon.at) + '.';
+    }
+    if (!$('#kJar').firstChild) $('#kJar').innerHTML = Charts.jarHero(0.58, { seed: 3, label: 'The Ferment jar' });
+    $('#kLine').textContent = line;
 
     if (!bs.length && !cs.length) {
       body.innerHTML =
-        '<div class="empty settle"><h3>Nothing under your care yet</h3>' +
+        '<div class="empty settle">' + Charts.illus('shelf') +
+        '<h3>Nothing under your care yet</h3>' +
         '<p>Start a jar from the ladder, or tell Ferment about a starter or a SCOBY you already keep alive.</p>' +
         '<div class="btnrow"><button class="btn" data-act="goladder">Open the ladder</button>' +
         '<button class="btn ghost" data-act="newculture">Add a culture</button></div></div>' +
-        '<div class="empty"><h3>Read the guide first</h3>' +
-        '<p>Salt percentages, what mold actually looks like next to the things that are not mold, and the ' +
-        'categories this app deliberately stays out of.</p>' +
+        '<div class="card flat" style="margin-top:18px"><h3 class="serif">Read the guide first</h3>' +
+        '<p class="help">Salt percentages, what mold actually looks like next to the things that are not mold, ' +
+        'and the categories this app deliberately stays out of.</p>' +
         '<div class="btnrow"><button class="btn ghost" data-act="goguide">Open the guide</button></div></div>';
       return;
     }
 
     let h = '';
-    const ag = Store.agenda(9 * Store.DAY).slice(0, 6);
     if (ag.length) {
       h += '<p class="eyebrow">Up next</p><div class="agenda">';
-      for (const a of ag) {
+      ag.forEach((a, i) => {
         const late = a.at < Date.now();
-        h += '<button class="ag-row' + (late ? ' is-late' : '') + '" data-ag-owner="' + esc(a.ownerId) +
+        h += '<button class="ag-row settle' + (late ? ' is-late' : '') + '" style="--i:' + i + '" data-ag-owner="' + esc(a.ownerId) +
              '" data-ag-type="' + a.ownerType + '" data-ag-kind="' + a.kind + '"' +
              (a.ackKey ? ' data-ag-ack="' + esc(a.ackKey) + '"' : '') + '>' +
              '<span class="ag-when">' + esc(Store.relative(a.at)) + '</span>' +
@@ -173,24 +211,50 @@ const App = (() => {
              (a.kind === 'stage' ? '' :
                '<span class="ag-do">' + (a.kind === 'feed' ? 'Fed it' : 'Done') + '</span>') +
              '</button>';
-      }
+      });
       h += '</div>';
     }
 
+    let i = 0;
     if (bs.length) {
-      h += '<div class="sec-title"><h2 class="serif">Batches</h2><span class="count">' + bs.length + ' active</span></div>';
-      for (const b of bs) h += batchCard(b);
+      h += '<div class="sec-title"><h2 class="serif">Batches</h2><span class="count mono">' + bs.length + ' active</span></div>';
+      for (const b of bs) h += batchCard(b, i++);
     }
     if (cs.length) {
-      h += '<div class="sec-title"><h2 class="serif">Cultures</h2><span class="count">' + cs.length + '</span></div>';
-      for (const c of cs) h += cultureCard(c);
+      h += '<div class="sec-title"><h2 class="serif">Cultures</h2><span class="count mono">' + cs.length + '</span></div>';
+      for (const c of cs) h += cultureCard(c, i++);
     }
     h += '<div class="btnrow"><button class="btn ghost" data-act="goladder">Start something new</button>' +
          '<button class="btn ghost" data-act="newculture">Add a culture</button></div>';
     body.innerHTML = h;
   }
 
-  function batchCard(b) {
+  function countLine(nb, nc) {
+    const p = [];
+    if (nb) p.push(nb + (nb === 1 ? ' batch' : ' batches'));
+    if (nc) p.push(nc + (nc === 1 ? ' culture' : ' cultures'));
+    return p.join(' and ') + ' under your care.';
+  }
+  /**
+   * How full the jar is drawn. A batch fills as its stage runs, because that is progress.
+   * A culture empties as its feed runs out, because that is what the jar is actually doing:
+   * full and glowing just after a feed, low and dull when it is hungry.
+   */
+  /* Both gauges keep a floor: a jar drawn nearly empty reads as broken rather than as low,
+     and the number beside it is what carries the precision anyway. */
+  const FLOOR = 0.28;
+  const gauge = v => FLOOR + (1 - FLOOR) * Math.max(0, Math.min(1, v));
+  function cultureFill(f) { return gauge(1 - Math.min(1, f.frac)); }
+  function gaugeOf(type, o) {
+    if (type === 'culture') return cultureFill(Store.feedState(o));
+    const r = Content.recipe(o.recipeId);
+    const st = r && r.stages[o.stageIndex];
+    if (!st) return gauge(0.5);
+    const days = (Date.now() - o.stageStartedAt) / Store.DAY;
+    return gauge(days / Math.max(0.02, st.days[1]));
+  }
+
+  function batchCard(b, idx) {
     const r = Content.recipe(b.recipeId);
     if (!r) return '';
     const st = r.stages[b.stageIndex];
@@ -207,28 +271,49 @@ const App = (() => {
     let pips = '';
     for (let i = 0; i < r.stages.length; i++)
       pips += '<span class="pip' + (i < b.stageIndex ? ' is-done' : i === b.stageIndex ? ' is-now' : '') + '"></span>';
-    return '<button class="thing settle" data-batch="' + esc(b.id) + '">' +
-      '<span class="thing-top">' + vessel(Content.family(b.family).glyph) +
-      '<span class="thing-id"><b>' + esc(b.title) + '</b><i>' + esc(st.name) + ', stage ' + (b.stageIndex + 1) +
+    return '<button class="thing settle" style="--i:' + (idx || 0) + '" data-batch="' + esc(b.id) + '">' +
+      '<span class="thing-top">' +
+      Charts.jar(gaugeOf('batch', b), { late: late, seed: hash(b.id), label: st.name + ', day ' + day }) +
+      '<span class="thing-id"><b>' + esc(b.title) + '</b>' +
+      '<i>' + vessel(Content.family(b.family).glyph, 'kindmark') + esc(st.name) + ', stage ' + (b.stageIndex + 1) +
       ' of ' + r.stages.length + '</i><span class="pips">' + pips + '</span></span>' +
-      '<span class="thing-badge">day ' + day + '</span></span>' +
+      '<span class="thing-badge mono">day ' + day + '</span></span>' +
       '<span class="thing-next' + (late ? ' is-late' : '') + '"><b>' + (late ? 'Overdue' : 'Now') + '</b>' + esc(next) + '</span>' +
       '</button>';
   }
 
-  function cultureCard(c) {
+  function cultureCard(c, idx) {
     const k = Content.cultureKind(c.kind);
+    const retired = c.state === 'retired';
     const f = Store.feedState(c);
-    const line = f.overdue
-      ? 'Feed overdue by ' + Store.spanText((Date.now() - f.due) / Store.HOUR)
-      : 'Feed due ' + Store.relative(f.due);
-    return '<button class="thing settle" data-culture="' + esc(c.id) + '">' +
-      '<span class="thing-top">' + vessel(k.glyph) +
-      '<span class="thing-id"><b>' + esc(c.name) + '</b><i>' + esc(k.label) + ', ' + esc(Store.ageText(c.bornAt)) + '</i></span>' +
-      Charts.ring(f.frac, f.overdue) + '</span>' +
-      '<span class="thing-next' + (f.overdue ? ' is-late' : '') + '"><b>' + (f.overdue ? 'Hungry' : 'Fed') + '</b>' +
-      esc(line) + ', every ' + esc(Store.spanText(f.hours)) + ' at ' + esc(Store.showTemp(f.tempC, 0)) + '</span>' +
+    // A retired jar is not hungry. It stopped being fed on purpose, and saying otherwise
+    // put a red overdue reading on every jar anyone had ever given away.
+    const line = retired
+      ? 'Kept for its history and its place in the family tree'
+      : f.overdue
+        ? 'Feed overdue by ' + Store.spanText((Date.now() - f.due) / Store.HOUR)
+        : 'Feed due ' + Store.relative(f.due);
+    const tail = retired ? '' :
+      ', every ' + esc(Store.spanText(f.hours)) + ' at ' + esc(Store.showTemp(f.tempC, 0));
+    return '<button class="thing settle' + (retired ? ' is-retired' : '') + '" style="--i:' + (idx || 0) +
+      '" data-culture="' + esc(c.id) + '">' +
+      '<span class="thing-top">' +
+      Charts.jar(retired ? 0.34 : cultureFill(f),
+                 { late: !retired && f.overdue, bubbles: retired ? 0 : 5, seed: hash(c.id),
+                   label: k.label + ', ' + line }) +
+      '<span class="thing-id"><b>' + esc(c.name) + '</b>' +
+      '<i>' + vessel(k.glyph, 'kindmark') + esc(k.label) + ', ' + esc(Store.ageText(c.bornAt)) + '</i></span>' +
+      '</span>' +
+      '<span class="thing-next' + (!retired && f.overdue ? ' is-late' : '') + '"><b>' +
+      (retired ? 'Retired' : f.overdue ? 'Hungry' : 'Fed') + '</b>' + esc(line) + tail + '</span>' +
       '</button>';
+  }
+
+  /** A stable small number from an id, so a jar's bubbles look the same every render. */
+  function hash(id) {
+    let h = 5381;
+    for (let i = 0; i < String(id).length; i++) h = ((h << 5) + h + String(id).charCodeAt(i)) >>> 0;
+    return h % 9973;
   }
 
   /* ============================================================
@@ -239,13 +324,13 @@ const App = (() => {
             'started from one arrives with its own timeline and its own reminders.</p>';
     for (const t of Content.TIERS) {
       h += '<div class="tier"><div class="tier-head"><h2>' + esc(t.title) + '</h2><p>' + esc(t.note) + '</p></div>';
-      for (const r of Content.RECIPES.filter(r => r.tier === t.n)) {
-        h += '<button class="rung" data-recipe="' + esc(r.id) + '">' +
-             '<span class="num">' + String(r.rung).padStart(2, '0') + '</span>' +
+      Content.RECIPES.filter(r => r.tier === t.n).forEach((r, i) => {
+        h += '<button class="rung settle" style="--i:' + i + '" data-recipe="' + esc(r.id) + '">' +
+             '<span class="num mono">' + String(r.rung).padStart(2, '0') + '</span>' +
              '<span><b>' + esc(r.title) + '</b><i>' + esc(r.subtitle) + '</i>' +
-             '<span class="meta">' + esc(r.span) + '  /  ' + esc(Content.family(r.family).label.toLowerCase()) +
-             '  /  ' + r.stages.length + ' stages</span></span></button>';
-      }
+             '<span class="meta mono">' + esc(r.span) + '  /  ' + r.stages.length + ' stages</span></span>' +
+             vessel(Content.family(r.family).glyph, 'rungmark') + '</button>';
+      });
       h += '</div>';
     }
     $('#rBody').innerHTML = h;
@@ -258,7 +343,7 @@ const App = (() => {
     if (calcAmount === null || calcAmount.id !== r.id) calcAmount = { id: r.id, v: r.basis.def };
     const amount = calcAmount.v;
 
-    let h = '<div class="rhero">' + vessel(Content.family(r.family).glyph) +
+    let h = '<div class="rhero">' + '<span class="specimen">' + vessel(Content.family(r.family).glyph) + '</span>' +
       '<h1>' + esc(r.title) + '</h1><p class="sub">' + esc(r.subtitle) + '</p>' +
       '<p class="blurb">' + esc(r.blurb) + '</p>' +
       '<div class="factrow"><div><span>Takes</span><b>' + esc(r.span) + '</b></div>' +
@@ -266,9 +351,9 @@ const App = (() => {
       '<div><span>Family</span><b>' + esc(Content.family(r.family).label) + '</b></div></div></div>';
 
     h += '<div class="calc"><p class="lbl">' + esc(r.basis.label) + ' (' + r.basis.unit + ')</p>' +
-      '<div class="calcrow"><button class="stepper" data-calc="-">&minus;</button>' +
+      '<div class="calcrow"><button class="stepper" data-calc="-" aria-label="Less">' + ICON.minus + '</button>' +
       '<input type="number" id="calcIn" inputmode="decimal" value="' + amount + '" min="1" step="' + r.basis.step + '">' +
-      '<button class="stepper" data-calc="+">+</button></div>' +
+      '<button class="stepper" data-calc="+" aria-label="More">' + ICON.plus + '</button></div>' +
       '<p class="help">' + esc(r.pctLabel) + '. Change the number and the whole table moves with it.</p></div>';
 
     h += '<table class="lab"><thead><tr><th>Ingredient</th><th class="pct" style="text-align:right">%</th>' +
@@ -368,11 +453,27 @@ const App = (() => {
     if (!b) return pop();
     const r = Content.recipe(b.recipeId);
     $('#batchTop').textContent = b.title;
+    if (!r) {
+      // Only reachable from a restored backup that carries a recipe this build does not have.
+      $('#batchBody').innerHTML =
+        '<div class="card"><h3>This batch refers to a recipe that is not in this app</h3>' +
+        '<p class="help">Its log is intact and the export still contains it. Nothing here can be ' +
+        'edited, because the stage plan it was started from is missing.</p></div>' +
+        b.logs.slice().sort((x, y) => y.at - x.at).map(logRow).join('') +
+        '<div class="btnrow" style="margin-top:26px"><button class="btn ghost danger" ' +
+        'data-act="deletebatch">Delete</button></div>';
+      return;
+    }
     const st = r.stages[b.stageIndex];
     const last = b.stageIndex === r.stages.length - 1;
 
-    let h = '<div class="rhero">' + vessel(Content.family(b.family).glyph) +
-      '<h1>' + esc(b.title) + '</h1><p class="sub">' + esc(r.title) +
+    const inWindow = (Date.now() - b.stageStartedAt) / Store.DAY > st.days[1];
+    let h = '<div class="rhero">' +
+      (b.state === 'active'
+        ? '<span class="herojar">' + Charts.jar(gaugeOf('batch', b), { late: inWindow, seed: hash(b.id),
+            cls: 'jar-feed', label: st.name + ', day ' + Store.dayOf(b.startedAt) }) + '</span>'
+        : '<span class="specimen">' + vessel(Content.family(b.family).glyph) + '</span>') +
+      '<h1>' + esc(b.title) + '</h1><p class="sub">' + vessel(Content.family(b.family).glyph, 'kindmark') + esc(r.title) +
       (b.cultureId && Store.culture(b.cultureId) ? ', with ' + esc(Store.culture(b.cultureId).name) : '') + '</p>' +
       '<div class="factrow"><div><span>Day</span><b>' + Store.dayOf(b.startedAt) + '</b></div>' +
       '<div><span>Stage</span><b>' + (b.stageIndex + 1) + ' of ' + r.stages.length + '</b></div>' +
@@ -405,7 +506,7 @@ const App = (() => {
 
     /* charts for anything with two or more readings */
     const chartKinds = [
-      { k: 'temp', label: 'Temperature', band: st.targets && st.targets.temp, fmt: v => Store.showTemp(v, 0) },
+      { k: 'temp', label: 'Temperature', band: st.targets && st.targets.temp, fmt: v => Store.showTemp(v, 1) },
       { k: 'ph', label: 'pH', band: st.targets && st.targets.ph, fmt: v => Store.round(v, 1) },
       { k: 'gravity', label: 'Specific gravity', band: st.targets && st.targets.gravity, fmt: v => Store.round(v, 3) },
       { k: 'salinity', label: 'Brine strength', band: st.targets && st.targets.salinity, fmt: v => Store.round(v, 1) + '%' }
@@ -478,7 +579,7 @@ const App = (() => {
       val = ' <span class="v">' + esc(l.kind === 'temp' ? Store.showTemp(l.value, 1) : l.value + (k.unit ? k.unit : '')) + '</span>';
     return '<div class="logrow"><span class="t"><b>' + esc(Store.dayLabel(l.at)) + '</b>' + esc(Store.clock(l.at)) + '</span>' +
       '<span class="k"><b>' + esc(k.label) + '</b>' + val + (l.text ? '<em>' + esc(l.text) + '</em>' : '') + '</span>' +
-      '<button class="x" data-dellog="' + esc(l.id) + '" aria-label="Delete this entry">&times;</button></div>';
+      '<button class="x" data-dellog="' + esc(l.id) + '" aria-label="Delete this entry">' + ICON.close + '</button></div>';
   }
 
   function hydratePhotos(root) {
@@ -492,7 +593,7 @@ const App = (() => {
     const cs = Store.cultures();
     let h = '';
     if (!cs.length) {
-      h = '<div class="empty"><h3>No cultures yet</h3>' +
+      h = '<div class="empty settle">' + Charts.illus('split') + '<h3>No cultures yet</h3>' +
         '<p>A culture is the thing that outlives the batch: a starter, a SCOBY, kefir grains. ' +
         'Give it a name and a feeding rhythm and Ferment keeps its age, its history and its family tree.</p>' +
         '<div class="btnrow"><button class="btn" data-act="newculture">Add a culture</button>' +
@@ -500,10 +601,10 @@ const App = (() => {
     } else {
       const live = cs.filter(c => c.state !== 'retired');
       const gone = cs.filter(c => c.state === 'retired');
-      for (const c of live) h += cultureCard(c);
+      live.forEach((c, i) => { h += cultureCard(c, i); });
       if (gone.length) {
-        h += '<div class="sec-title"><h2 class="serif">Retired</h2><span class="count">' + gone.length + '</span></div>';
-        for (const c of gone) h += cultureCard(c);
+        h += '<div class="sec-title"><h2 class="serif">Retired</h2><span class="count mono">' + gone.length + '</span></div>';
+        gone.forEach((c, i) => { h += cultureCard(c, live.length + i); });
       }
       h += '<div class="btnrow"><button class="btn ghost" data-act="newculture">Add a culture</button>' +
         '<button class="btn ghost" data-act="claim">Claim a culture card</button></div>';
@@ -518,7 +619,7 @@ const App = (() => {
     const f = Store.feedState(c);
     $('#cultureTop').textContent = c.name;
 
-    let h = '<div class="rhero">' + vessel(k.glyph) +
+    let h = '<div class="rhero">' + '<span class="specimen">' + vessel(k.glyph) + '</span>' +
       '<h1>' + esc(c.name) + '</h1><p class="sub">' + esc(k.label) + ', ' + esc(Store.ageText(c.bornAt)) + '</p>' +
       (c.origin ? '<p class="blurb">' + esc(c.origin) + '</p>' : '') + '</div>';
 
@@ -529,15 +630,24 @@ const App = (() => {
         esc(latest.photoId) + '" style="margin-bottom:14px">';
     }
 
-    h += '<div class="card"><div style="display:flex;gap:12px;align-items:center">' + Charts.ring(f.frac, f.overdue) +
-      '<div style="flex:1"><b>' + (f.overdue
-        ? 'Hungry, overdue by ' + esc(Store.spanText((Date.now() - f.due) / Store.HOUR))
-        : 'Feed due ' + esc(Store.relative(f.due))) + '</b>' +
+    const retired = c.state === 'retired';
+    h += '<div class="card"><div class="feedrow">' +
+      Charts.jar(retired ? 0.34 : cultureFill(f),
+                 { late: !retired && f.overdue, bubbles: retired ? 0 : 6, seed: hash(c.id), cls: 'jar-feed',
+                   label: retired ? 'Retired' : f.overdue ? 'Feed overdue' : 'Feed due ' + Store.relative(f.due) }) +
+      '<div style="flex:1"><b>' + (retired
+        ? 'Retired, and no longer fed'
+        : f.overdue
+          ? 'Hungry, overdue by ' + esc(Store.spanText((Date.now() - f.due) / Store.HOUR))
+          : 'Feed due ' + esc(Store.relative(f.due))) + '</b>' +
       '<p class="help">' + (f.everFed ? 'Last fed ' + esc(Store.dateLine(f.lastAt)) : 'Never fed through the app') + '</p></div></div>' +
-      '<p class="help">' + esc(tempReason(c, f)) + '</p>' +
-      (c.feed.ratio ? '<p class="help">' + esc(c.feed.ratio) + '</p>' : '') +
-      '<div class="btnrow"><button class="btn" data-act="feed">Fed it just now</button>' +
-      '<button class="btn ghost" data-act="schedule">Change the rhythm</button></div></div>';
+      (retired ? '<p class="help">Its history, photographs and family tree are all still here.</p>'
+               : '<p class="help">' + esc(tempReason(c, f)) + '</p>' +
+                 (c.feed.ratio ? '<p class="help">' + esc(c.feed.ratio) + '</p>' : '')) +
+      (retired ? ''
+               : '<div class="btnrow"><button class="btn" data-act="feed">Fed it just now</button>' +
+                 '<button class="btn ghost" data-act="schedule">Change the rhythm</button></div>') +
+      '</div>';
 
     h += '<div class="chips" style="margin-top:6px">' +
       '<button class="chip" data-act="risecheck">Rise check</button>' +
@@ -549,16 +659,19 @@ const App = (() => {
     const pk = Store.risePeak(c);
     h += '<div class="chartwrap"><div class="cap"><b>Rise since the feed line</b><span>' +
       (pk ? esc(Store.round(pk.ratio, 2)) + 'x at ' + esc(Store.spanText(pk.hours)) : 'no marks yet') + '</span></div>' +
-      (rs.length ? Charts.rise(rs) : Charts.empty('Set the lines on a jar photo to start a rise series.')) + '</div>';
-    if (!c.riseRef)
-      h += '<p class="help">A rise check is a photograph with two lines on it: the bottom of the jar contents ' +
-           'and the level right after a feed. The app does the arithmetic, you place the lines. There is no ' +
-           'camera analysis here and none is claimed.</p>';
+      (rs.length ? Charts.rise(rs) : '') + '</div>';
+    if (!rs.length)
+      h += '<div class="empty">' + Charts.illus('measure') +
+           '<h3>No rise marks yet</h3>' +
+           '<p>A rise check is a photograph with two lines on it: the bottom of the jar contents, and the ' +
+           'level right after a feed. You place the lines, the app does the arithmetic. There is no camera ' +
+           'analysis here and none is claimed.</p>' +
+           '<div class="btnrow"><button class="btn ghost" data-act="risecheck">Set the lines</button></div></div>';
 
     const temps = Store.logsOfKind(c, 'temp').map(l => ({ at: l.at, value: l.value }));
     if (temps.length >= 2) {
       h += '<div class="chartwrap"><div class="cap"><b>Kitchen temperature</b><span>' + temps.length + ' readings</span></div>' +
-        Charts.series(temps, { fmt: v => Store.showTemp(v, 0), label: 'Temperature' }) + '</div>';
+        Charts.series(temps, { fmt: v => Store.showTemp(v, 1), label: 'Temperature' }) + '</div>';
     }
 
     /* lineage */
@@ -570,7 +683,10 @@ const App = (() => {
       h += '<p class="help">' + (kids ? kids + (kids === 1 ? ' descendant' : ' descendants') + ' on this device. ' : '') +
         (tree.ancestors.length ? 'Ancestry came with the culture card that started this jar.' : '') + '</p>';
     } else {
-      h += '<p class="help">Just this jar so far. Split off a second one, or gift it, and the tree starts.</p>';
+      h += '<div class="empty">' + Charts.illus('split') +
+        '<h3>Just this jar so far</h3>' +
+        '<p>Split off a second jar, or hand one to a friend with a culture card, and the family tree starts ' +
+        'here.</p></div>';
     }
     h += '<div class="btnrow"><button class="btn ghost" data-act="split">Split off a jar</button>' +
       '<button class="btn ghost" data-act="gift">Make a culture card</button></div>';
@@ -736,7 +852,6 @@ const App = (() => {
 
     $('#ktemp').addEventListener('input', e => {
       Store.setSetting('kitchenTempC', parseInt(e.target.value, 10));
-      e.target.previousElementSibling ? null : null;
       const lab = $('#settingsBody label[for="ktemp"]');
       if (lab) lab.textContent = 'Usually about ' + Store.showTemp(Store.settings().kitchenTempC, 0);
     });
@@ -892,6 +1007,7 @@ const App = (() => {
       actions: [
         { label: 'Close', kind: 'ghost', on: () => { closeSheet(); refresh(); } },
         { label: 'Make the card', on: () => {
+            if (!$('#codeField').hidden) return;
             const who = $('#gw').value;
             const code = Store.giftCode(c.id, who);
             $('#codeField').hidden = false;
@@ -933,7 +1049,8 @@ const App = (() => {
             if (!n) { toast('The new jar needs a name.'); return; }
             const id = Store.splitCulture(c.id, n);
             buzz(20); closeSheet();
-            replace({ screen: 'culture', id: id });
+            // Pushed, not replaced: backing out of a new offshoot belongs on the jar it came from.
+            push({ screen: 'culture', id: id });
             syncReminders();
           } }
       ]
@@ -1117,8 +1234,14 @@ const App = (() => {
       if (ag) {
         const d = ag.dataset;
         if (e.target.closest('.ag-do')) {
-          if (d.agKind === 'feed') { Store.addCultureLog(d.agOwner, { kind: 'feed' }); buzz(18); toast('Fed.'); refresh(); return; }
-          if (d.agKind === 'check') { Store.ackCheck(d.agOwner, d.agAck); buzz(14); refresh(); return; }
+          if (d.agKind === 'feed') {
+            if (firstTap('feed:' + d.agOwner)) { Store.addCultureLog(d.agOwner, { kind: 'feed' }); buzz(18); toast('Fed.'); refresh(); }
+            return;
+          }
+          if (d.agKind === 'check') {
+            if (firstTap('ack:' + d.agOwner + d.agAck)) { Store.ackCheck(d.agOwner, d.agAck); buzz(14); refresh(); }
+            return;
+          }
         }
         if (d.agType === 'culture') push({ screen: 'culture', id: d.agOwner });
         else push({ screen: 'batch', id: d.agOwner });
@@ -1179,10 +1302,13 @@ const App = (() => {
       case 'photo': openCapture('journal'); break;
       case 'risecheck': openCapture(cur && cur.o && cur.o.riseRef ? 'rise' : 'mark'); break;
       case 'advance':
-        if (cur && cur.type === 'batch') { Store.advanceStage(cur.o.id); buzz(24); refresh(); toast('Stage moved on.'); }
+        // Guarded: a double tap on this used to skip a whole stage of the ferment.
+        if (cur && cur.type === 'batch' && firstTap('advance:' + cur.o.id)) {
+          Store.advanceStage(cur.o.id); buzz(24); refresh(); toast('Stage moved on.');
+        }
         break;
       case 'backstage':
-        if (cur && cur.type === 'batch') { Store.backStage(cur.o.id); refresh(); }
+        if (cur && cur.type === 'batch' && firstTap('backstage:' + cur.o.id)) { Store.backStage(cur.o.id); refresh(); }
         break;
       case 'outcome': if (cur && cur.type === 'batch') outcomeSheet(cur.o); break;
       case 'reopen': if (cur && cur.type === 'batch') { Store.reopenBatch(cur.o.id); refresh(); } break;
@@ -1198,7 +1324,9 @@ const App = (() => {
           });
         break;
       case 'feed':
-        if (cur && cur.type === 'culture') { Store.addCultureLog(cur.o.id, { kind: 'feed' }); buzz(20); refresh(); toast('Fed.'); }
+        if (cur && cur.type === 'culture' && firstTap('feed:' + cur.o.id)) {
+          Store.addCultureLog(cur.o.id, { kind: 'feed' }); buzz(20); refresh(); toast('Fed.');
+        }
         break;
       case 'schedule': if (cur && cur.type === 'culture') scheduleSheet(cur.o); break;
       case 'split': if (cur && cur.type === 'culture') splitSheet(cur.o); break;
@@ -1243,7 +1371,7 @@ const App = (() => {
 
   /* ---------- first run ---------- */
   function renderWelcome() {
-    $('#wm').innerHTML = Content.glyph('starter');
+    $('#wm').innerHTML = Charts.jarHero(0.62, { seed: 11, label: 'The Ferment jar' });
     $('#welcomePaths').innerHTML = Content.START_PATHS.map(p =>
       '<button class="bigchoice" data-path="' + p.id + '"><b>' + esc(p.title) + '</b><i>' + esc(p.sub) + '</i></button>'
     ).join('');
@@ -1272,6 +1400,9 @@ const App = (() => {
   }
   function onPause() { if (Capture.isOpen()) Capture.stop(); syncReminders(); }
   function onResume() {
+    // Android stops the camera when the app goes away. Without this the viewfinder came back
+    // frozen and the shutter fell through to the file picker.
+    if (Capture.isOpen()) Capture.resume();
     if (view === 'kitchen') renderKitchen();
     if (view === 'cultures') renderCultures();
     syncReminders();

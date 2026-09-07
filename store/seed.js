@@ -67,7 +67,7 @@
     B({ id: 'b-kimchi', recipeId: 'baechu', title: 'Baechu kimchi, batch 4', family: 'veg',
         startedAt: now - 3 * D, stageIndex: 2, stageStartedAt: now - 47 * H,
         scale: { key: 'veg', amount: 2400 },
-        doneTasks: { '2:0': now - 40 * H },
+        doneTasks: { '2:0': now - 40 * H }, acks: { '2:0:1': now - 22 * H },
         logs: [
           L('stage', 71, undefined, 'Finished Brine the cabbage, started Paste and pack'),
           L('stage', 47, undefined, 'Finished Paste and pack, started Room temperature wake up'),

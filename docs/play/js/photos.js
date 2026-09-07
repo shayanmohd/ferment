@@ -95,16 +95,28 @@ const Photos = (() => {
     }));
   }
 
+  /* A restored backup carries the notebook but not the photographs, which live in this
+     device's own IndexedDB. Rather than a broken image, those slots get a drawn jar. */
+  const MISSING = 'data:image/svg+xml,' + encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 150">' +
+    '<rect width="120" height="150" fill="#F0E7D5"/>' +
+    '<g transform="translate(38 43)" fill="none" stroke="#A4501B" stroke-opacity="0.42" ' +
+    'stroke-width="1.7" stroke-linejoin="round">' +
+    '<path d="M9 15c0 4-7 5.5-7 13v22a11 11 0 0 0 11 11h18a11 11 0 0 0 11-11V28c0-7.5-7-9-7-13z"/>' +
+    '<rect x="8" y="3" width="28" height="7.4" rx="3"/></g></svg>');
+
   /** Fill an <img> once the record arrives, without blocking the render. */
   function attach(img, id) {
     if (!img) return;
-    if (!id) { img.removeAttribute('src'); img.classList.add('is-blank'); return; }
-    if (cache.has(id)) { img.src = cache.get(id); img.classList.remove('is-blank'); return; }
+    const blank = () => { img.src = MISSING; img.classList.add('is-blank'); img.classList.remove('is-loading'); };
+    if (!id) { blank(); return; }
+    if (cache.has(id)) { img.src = cache.get(id); img.classList.remove('is-blank', 'is-loading'); return; }
+    img.src = MISSING;
     img.classList.add('is-loading');
     get(id).then(d => {
       img.classList.remove('is-loading');
       if (d) { img.src = d; img.classList.remove('is-blank'); }
-      else img.classList.add('is-blank');
+      else blank();
     });
   }
 

@@ -13,10 +13,11 @@
 <style>
   :root {
     color-scheme: light;
-    --paper: #F3EFE4; --card: #FCFAF4; --card-2: #EAE3D1;
-    --ink: #221D16; --ink-2: #4A4335; --muted: #6E6555;
-    --hair: #D9D1BE; --hair-2: #C6BCA4;
-    --accent: #97551A; --accent-soft: rgba(151, 85, 26, .10); --on-accent: #FDF7EC;
+    --paper: #F4EDE0; --card: #FFFAF1; --card-2: #F0E7D5;
+    --ink: #2A2118; --ink-2: #4E4234; --muted: #6B5F4E;
+    --hair: #E2D8C4; --hair-2: #CDC1A7;
+    --accent: #A4501B; --accent-lit: #AE5518; --accent-deep: #7E3B12;
+    --honey: #E9A33A; --accent-soft: rgba(164, 80, 27, .10); --on-accent: #FFF6E6;
     --sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
     --serif: "Fraunces", Georgia, "Times New Roman", serif;
     --mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
@@ -32,14 +33,16 @@
   img.shot { width: 100%; height: auto; display: block; border: 1px solid var(--hair); border-radius: 16px;
              background: var(--card); }
 
-  .cta { display: inline-block; background: var(--accent); color: var(--on-accent); text-decoration: none;
-         padding: 15px 28px; border-radius: 12px; font-size: 17px; border: 1px solid var(--accent);
+  .cta { display: inline-block; color: var(--on-accent); text-decoration: none;
+         background: linear-gradient(180deg, var(--accent-lit), var(--accent-deep));
+         padding: 15px 28px; border-radius: 12px; font-size: 17px; border: 1px solid var(--accent-deep);
+         box-shadow: 0 1px 2px rgba(90, 45, 15, .08), 0 12px 26px -14px rgba(90, 45, 15, .5);
          transition: transform .15s ease; }
   .cta:active { transform: translateY(1px); }
 
   nav { display: flex; align-items: center; justify-content: space-between; height: 80px; }
   .mark { display: flex; align-items: center; gap: 11px; font-family: var(--serif); font-size: 20px; font-weight: 600; }
-  .mark svg { width: 22px; height: 26px; display: block; }
+  .mark svg { width: 21px; height: 31px; display: block; }
   nav a { color: var(--muted); text-decoration: none; font-size: 15px; margin-left: 22px; }
   nav a:hover { color: var(--ink); }
 
@@ -133,10 +136,20 @@
 <div class="wrap">
   <nav>
     <span class="mark">
-      <svg viewBox="0 0 22 26" aria-hidden="true">
-        <rect x="6" y="0.5" width="10" height="3.5" rx="1" fill="#221D16"/>
-        <rect x="3" y="5" width="16" height="20.5" rx="4" fill="#97551A"/>
-        <rect x="3.5" y="17.5" width="15" height="2" fill="#F3EFE4"/>
+      <svg viewBox="0 0 44 64" aria-hidden="true">
+        <defs>
+          <clipPath id="wmc"><path d="M9 15c0 4-7 5.5-7 13v22a11 11 0 0 0 11 11h18a11 11 0 0 0 11-11V28c0-7.5-7-9-7-13z"/></clipPath>
+          <linearGradient id="wmg" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#F4C070"/><stop offset="0.42" stop-color="#E39A2C"/><stop offset="1" stop-color="#B96D18"/>
+          </linearGradient>
+        </defs>
+        <rect x="8" y="3" width="28" height="7.4" rx="3" fill="#A4501B"/>
+        <rect x="10.6" y="10" width="22.8" height="5.6" rx="1.6" fill="#FFFAF1"/>
+        <path d="M9 15c0 4-7 5.5-7 13v22a11 11 0 0 0 11 11h18a11 11 0 0 0 11-11V28c0-7.5-7-9-7-13z" fill="#FFFDF8"/>
+        <g clip-path="url(#wmc)"><rect x="0" y="31" width="44" height="33" fill="url(#wmg)"/>
+          <circle cx="15" cy="48" r="2.6" fill="#FFFBEE" opacity="0.85"/>
+          <circle cx="27" cy="41" r="2" fill="#FFFBEE" opacity="0.8"/></g>
+        <path d="M9 15c0 4-7 5.5-7 13v22a11 11 0 0 0 11 11h18a11 11 0 0 0 11-11V28c0-7.5-7-9-7-13z" fill="none" stroke="#A4501B" stroke-width="1.6" stroke-linejoin="round"/>
       </svg>
       Ferment
     </span>
@@ -158,7 +171,7 @@
         with the phone in airplane mode.</p>
     </div>
     <img class="shot reveal" src="shots/01-kitchen.png" width="1080" height="1920"
-         alt="The Kitchen screen: an Up Next list of overdue and upcoming jobs, then cards for each active batch with its stage and day number.">
+         alt="The Kitchen screen: a glowing jar beside the date, an Up Next list of what is due, then a card per batch showing its stage and day number.">
   </header>
 </div>
 
@@ -173,7 +186,7 @@
 
 <section class="mech wrap" id="how">
   <img class="shot reveal" src="shots/02-batch.png" width="1080" height="1920"
-       alt="A kimchi batch on day 4, stage 3 of 4, with its current stage tasks, target ranges and a temperature chart.">
+       alt="A kimchi batch on day 4, stage 3 of 4, with its current stage tasks, target ranges, and temperature and pH charts drawn on grid paper.">
   <div>
     <h2>A timeline, not a to do list</h2>
     <p class="sub">Every recipe in Ferment is written as a stage plan, so a batch started from one arrives
@@ -199,7 +212,7 @@
     </figure>
     <figure class="reveal">
       <img class="shot" src="shots/04-culture.png" width="1080" height="1920"
-           alt="A starter named Brenda: feeding ring, the temperature reasoning in plain words, and a rise chart peaking at 2.46 times.">
+           alt="A starter named Brenda: a jar filled to how much of its feed is left, the temperature reasoning in plain words, and a rise chart peaking at 2.46 times.">
       <figcaption><b>The rubber band, kept properly.</b> Photograph the jar, drag one line to the level,
         and the app works out the multiple and plots the curve. You place the lines. There is no camera
         analysis here and none is claimed.</figcaption>

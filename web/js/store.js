@@ -41,6 +41,17 @@ const Store = (() => {
     b.doneTasks = b.doneTasks || {};
     b.acks = b.acks || {};
     b.riseRef = b.riseRef || null;
+    // A restored backup is the one record this app does not write itself, so the fields every
+    // screen reads are filled in rather than trusted.
+    b.startedAt = b.startedAt || Date.now();
+    b.stageStartedAt = b.stageStartedAt || b.startedAt;
+    b.stageIndex = Math.max(0, parseInt(b.stageIndex, 10) || 0);
+    b.state = b.state === 'done' || b.state === 'binned' ? b.state : 'active';
+    if (!b.scale || typeof b.scale.amount !== 'number' || !(b.scale.amount > 0)) {
+      const r = Content.recipe(b.recipeId);
+      b.scale = { key: r ? r.basis.key : 'amount', amount: r ? r.basis.def : 1000 };
+    }
+    if (!b.title) b.title = (Content.recipe(b.recipeId) || {}).title || 'Batch';
     return b;
   }
   function fixCulture(c) {
@@ -175,7 +186,7 @@ const Store = (() => {
 
   function advanceStage(id) {
     const b = batch(id); if (!b) return;
-    const r = Content.recipe(b.recipeId);
+    const r = Content.recipe(b.recipeId); if (!r) return;
     const name = r.stages[b.stageIndex] ? r.stages[b.stageIndex].name : '';
     if (b.stageIndex >= r.stages.length - 1) { return; }
     b.stageIndex++;
@@ -464,12 +475,13 @@ const Store = (() => {
   }
   function ageText(ts) {
     const d = Math.floor((Date.now() - ts) / DAY);
-    if (d < 1) return 'Started today';
+    if (d < 1) return 'started today';
     if (d < 60) return d + (d === 1 ? ' day old' : ' days old');
     const mo = Math.floor(d / 30.44);
-    if (mo < 24) return mo + ' months old';
+    if (mo < 24) return mo + (mo === 1 ? ' month old' : ' months old');
     const y = Math.floor(d / 365.25), rm = Math.round((d - y * 365.25) / 30.44);
-    return y + (y === 1 ? ' year' : ' years') + (rm ? ' and ' + rm + ' months' : '') + ' old';
+    return y + (y === 1 ? ' year' : ' years') +
+           (rm ? ' and ' + rm + (rm === 1 ? ' month' : ' months') : '') + ' old';
   }
   const dayOf = (startedAt) => Math.floor((Date.now() - startedAt) / DAY) + 1;
   function spanText(hours) {

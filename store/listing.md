@@ -10,18 +10,18 @@ Ferment: Sourdough & Kimchi
 ## Short description (79 / 80)
 A lab notebook for ferments. Timelines, feeding reminders, mold guide. Offline.
 
-## Full description (3981 / 4000)
+## Full description (3991 / 4000)
 Somewhere in your kitchen, something is alive and you are responsible for it. A starter with a name. A jar of kimchi in its funky adolescence. A kombucha culture that eats sugar like a teenager.
 
 Fermentation is a multi day experiment, and most people run it on a sticky note, a rubber band and a hopeful photograph posted to strangers.
 
 EVERY BATCH ON A TIMELINE
-Start a batch and it arrives with a stage plan already in place. Brine, pack, ferment, cold store, each with the window it usually takes, the jobs it needs, and the numbers worth watching while it runs. The Kitchen screen is a ward round: every jar with its day number, its stage, and the next thing you actually have to do.
+A batch arrives with a stage plan already in place. Brine, pack, ferment, cold store, each with the window it usually takes, the jobs it needs, and the numbers worth watching while it runs. The Kitchen screen is a ward round: a drawn jar for each one, filled to how far along it is, with its day number, its stage, and the next thing you have to do.
 
 The question stops being "is it ready" and becomes "day 6 of 10, taste it Thursday".
 
 REMINDERS THAT KNOW SOME BIOLOGY
-Burp prompts cluster in the loud first days and then stop on their own. A stage tells you when it reaches its window, and tells you again if it runs past it. Feeding intervals follow your kitchen: a starter fed every 12 hours at 21 degrees wants feeding roughly every 8 in a 26 degree kitchen, so log a temperature and the suggestion moves. The app shows its working, in a sentence, in plain words.
+Burp prompts cluster in the loud first days and then stop on their own. A stage tells you when it reaches its window, and tells you again if it runs past it. Feeding intervals follow your kitchen: a starter fed every 12 hours at 21 degrees wants feeding roughly every 8 in a 26 degree kitchen, so log a temperature and the suggestion moves. The app shows its working, in plain words.
 
 Every reminder is computed on your phone from your own jars. Nothing is fetched.
 
@@ -78,12 +78,14 @@ Privacy policy: https://shayanmohd.github.io/ferment/privacy-policy.html
 - Government, financial or health-device features: none. Ferment is a hobby notebook. It makes no health,
   nutrition, wellness or medical claims anywhere in the app, the listing or the website, and its food
   safety content is general information with an explicit "when in doubt, throw it out" rule.
-- Target audience: 18 and over is not required; the content is suitable for 13+. Nothing in the app is
-  directed at children and nothing is collected from anyone.
+- Target audience: 18 and over, declared that way because one of the twelve recipes is a traditional
+  mead and the app therefore describes making an alcoholic drink at home. Nothing in the app is directed
+  at children and nothing is collected from anyone.
 - Content rating questionnaire: no violence, no sexual content, no profanity, no gambling, no
   user-generated content, no user-to-user communication, no location sharing. The mead recipe involves
   making an alcoholic drink at home, which should be declared honestly if the questionnaire asks about
   references to alcohol.
-- AI-generated assets: none. The icon and feature graphic are drawn procedurally in code from
-  `store/brand.json`; the six triage illustrations are drawn in SVG by `web/js/charts.js`; the six
+- AI-generated assets: none. The icon and the feature graphic are hand-written vector sources,
+  `store/icon.svg` and `store/feature.html`, rendered by `_shiptools/render-brand.js`; the jar drawn
+  throughout the app and the six triage illustrations are SVG written in `web/js/charts.js`; the six
   screenshots are captures of the running app.

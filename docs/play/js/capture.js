@@ -39,6 +39,9 @@ const Capture = (() => {
       marks.bottom = owner.riseRef.bottomY;
       marks.base = owner.riseRef.baseY;
       marks.now = Math.max(0.04, owner.riseRef.baseY - 0.12);
+    } else {
+      // Otherwise the lines would open where the last jar left them.
+      marks = { bottom: 0.82, base: 0.55, now: 0.34 };
     }
     el.screen.hidden = false;
     document.body.classList.add('is-capturing');
@@ -272,8 +275,10 @@ const Capture = (() => {
   }
 
   const isOpen = () => !!(el.screen && !el.screen.hidden);
+  /** Called when the app comes back to the foreground with the camera screen still open. */
+  function resume() { if (isOpen() && !stream) start(); }
 
-  return { init, open, close, isOpen, stop };
+  return { init, open, close, isOpen, stop, resume };
 })();
 
 window.Capture = Capture;

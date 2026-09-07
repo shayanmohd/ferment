@@ -101,17 +101,128 @@ const Charts = (() => {
     return s;
   }
 
-  /** Feeding status ring: a stroked circle that fills as the interval runs out. */
-  function ring(frac, overdue) {
-    const r = 13, c = 2 * Math.PI * r;
-    const f = Math.max(0, Math.min(1, frac));
-    return '<svg class="ring' + (overdue ? ' is-over' : '') + '" viewBox="0 0 32 32" aria-hidden="true">' +
-      '<circle cx="16" cy="16" r="' + r + '" class="ring-track"/>' +
-      '<circle cx="16" cy="16" r="' + r + '" class="ring-fill" stroke-dasharray="' + n2(c * f) + ' ' + n2(c) +
-      '" transform="rotate(-90 16 16)"/>' +
-      (overdue ? '<circle cx="16" cy="16" r="3" class="ring-dot"/>' : '') +
+  /* ============================================================
+     THE JAR: the signature element, and the same drawing as the launcher icon.
+     store/icon.svg holds this exact silhouette; the only difference here is the
+     origin, moved so the shape sits in a 44 by 64 box. A jar lit from inside,
+     filled to a level that means something, with bubbles rising through it.
+     ============================================================ */
+
+  const JAR = {
+    body: 'M9 15c0 4-7 5.5-7 13v22a11 11 0 0 0 11 11h18a11 11 0 0 0 11-11V28c0-7.5-7-9-7-13z',
+    lid:  { x: 8, y: 3, w: 28, h: 7.4, r: 3 },
+    hi:   { x: 11, y: 4.6, w: 19, h: 1.8, r: 0.9 },
+    neck: { x: 10.6, y: 10, w: 22.8, h: 5.6, r: 1.6 },
+    top: 20, bot: 59                 // the range the contents can occupy
+  };
+  const rect = (o, cls) => '<rect class="' + cls + '" x="' + o.x + '" y="' + o.y +
+    '" width="' + o.w + '" height="' + o.h + '" rx="' + o.r + '"/>';
+  let jarN = 0;
+
+  /**
+   * fill  0 to 1, how high the contents sit
+   * opts  { late:bool, bubbles:int, seed:int, capped:bool, cls:string, label:string }
+   */
+  function jar(fill, opts) {
+    const o = opts || {};
+    const id = 'j' + (++jarN);
+    const f = Math.max(0, Math.min(1, isFinite(fill) ? fill : 0));
+    const y = JAR.bot - (JAR.bot - JAR.top) * f;
+    const rand = rng((o.seed || 7) * 2654435761 % 2147483647);
+    const n = o.bubbles === undefined ? 5 : o.bubbles;
+
+    let bubbles = '';
+    if (f > 0.08) {
+      for (let i = 0; i < n; i++) {
+        const cx = 8 + rand() * 26;
+        const r = 1.1 + rand() * 1.6;
+        const travel = Math.min(20, (JAR.bot - y) * 0.7 + 4);
+        const dur = (2.6 + rand() * 2.4).toFixed(2);
+        const del = (rand() * 3.4).toFixed(2);
+        bubbles += '<circle class="j-bub" cx="' + n2(cx) + '" cy="' + n2(JAR.bot - 2 - rand() * 4) +
+          '" r="' + n2(r) + '" style="--tr:' + n2(-travel) + 'px;--dur:' + dur + 's;--del:' + del + 's"/>';
+      }
+    }
+
+    return '<svg class="jar' + (o.late ? ' is-late' : '') + (o.cls ? ' ' + o.cls : '') +
+      '" viewBox="0 0 44 64" role="img" aria-label="' +
+      esc(o.label || 'Jar, ' + Math.round(f * 100) + ' percent full') + '">' +
+      '<defs>' +
+        '<clipPath id="' + id + 'c"><path d="' + JAR.body + '"/></clipPath>' +
+        '<linearGradient id="' + id + 'l" x1="0" y1="0" x2="0" y2="1">' +
+          '<stop offset="0" class="j-s0"/><stop offset="0.42" class="j-s1"/><stop offset="1" class="j-s2"/>' +
+        '</linearGradient>' +
+        '<radialGradient id="' + id + 'g" cx="0.5" cy="0.74" r="0.6">' +
+          '<stop offset="0" class="j-h0"/><stop offset="1" class="j-h1"/>' +
+        '</radialGradient>' +
+      '</defs>' +
+      (o.capped === false ? '' : rect(JAR.lid, 'j-lid') + rect(JAR.hi, 'j-lid-hi')) +
+      rect(JAR.neck, 'j-neck') +
+      '<path class="j-glass" d="' + JAR.body + '"/>' +
+      '<g clip-path="url(#' + id + 'c)">' +
+        '<rect x="0" y="' + n2(y) + '" width="44" height="' + n2(64 - y) + '" fill="url(#' + id + 'l)"/>' +
+        (f > 0.05 ? '<ellipse class="j-glow" cx="22" cy="' + n2(Math.min(56, y + 14)) + '" rx="21" ry="15" fill="url(#' + id + 'g)"/>' : '') +
+        '<g class="j-bubs">' + bubbles + '</g>' +
+        (f > 0.05 ? '<path class="j-line" d="M-2 ' + n2(y) + ' q 12 -2.4 24 0 t 24 0"/>' : '') +
+      '</g>' +
+      '<path class="j-edge" d="' + JAR.body + '"/>' +
+      '<path class="j-shine" d="M7.6 23v13"/>' +
       '</svg>';
   }
+
+  /** The jar as a still specimen, for headers and empty states. */
+  function jarHero(fill, opts) {
+    return jar(fill, Object.assign({ bubbles: 7, cls: 'jar-hero' }, opts || {}));
+  }
+
+  /* ---------- drawn empty states, built from the same jar ---------- */
+  /** The jar outline for an illustration: no gauge, optional contents to a level. */
+  let illN = 0;
+  function jarOutline(level) {
+    const id = 'ill' + (++illN);
+    let s = '<defs><clipPath id="' + id + '"><path d="' + JAR.body + '"/></clipPath></defs>' +
+      rect(JAR.neck, 'i-fill') + '<path class="i-glass" d="' + JAR.body + '"/>';
+    if (level !== undefined)
+      s += '<g clip-path="url(#' + id + ')"><rect class="i-brine" x="0" y="' + level + '" width="44" height="' + (64 - level) + '"/></g>';
+    s += '<path class="i-edge" d="' + JAR.body + '"/><path class="i-shine" d="M7.6 23v13"/>';
+    return s;
+  }
+
+  const ILLUS = {
+    /** An empty jar on a shelf, its lid lying beside it. */
+    shelf() {
+      return '<svg class="illus" viewBox="0 0 200 120" role="img" aria-label="An empty jar standing on a shelf with its lid beside it">' +
+        '<ellipse class="i-pool" cx="100" cy="104" rx="66" ry="9"/>' +
+        '<g transform="translate(75 39) scale(1.05)">' + jarOutline() + '</g>' +
+        '<g transform="translate(140 96) rotate(-9)">' +
+          '<path class="i-lid" d="M-17 -3.5a17 6 0 0 0 34 0v-3a17 6 0 0 0-34 0z"/>' +
+          '<ellipse class="i-lidtop" cx="0" cy="-6.5" rx="17" ry="6"/>' +
+          '<ellipse class="i-lidhi" cx="0" cy="-6.5" rx="11" ry="3.4"/>' +
+        '</g>' +
+        '<line class="i-shelf" x1="20" y1="104" x2="180" y2="104"/>' +
+        '</svg>';
+    },
+    /** One jar giving a spoonful to a second, smaller one: what a split is. */
+    split() {
+      return '<svg class="illus" viewBox="0 0 200 120" role="img" aria-label="One jar passing a measure into a second, smaller jar">' +
+        '<ellipse class="i-pool" cx="100" cy="104" rx="66" ry="9"/>' +
+        '<g transform="translate(40 41)">' + jarOutline(34) + '</g>' +
+        '<path class="i-drip" d="M88 62c9 3 13 10 14 19"/>' +
+        '<g transform="translate(112 55) scale(0.78)">' + jarOutline(48) + '</g>' +
+        '<line class="i-shelf" x1="20" y1="104" x2="180" y2="104"/>' +
+        '</svg>';
+    },
+    /** A jar with two measuring lines across it: what a rise check is. */
+    measure() {
+      return '<svg class="illus illus-sm" viewBox="0 0 200 120" role="img" aria-label="A jar with two measuring lines drawn across it">' +
+        '<g transform="translate(78 32) scale(1.05)">' + jarOutline(34) + '</g>' +
+        '<line class="i-mark" x1="58" y1="68" x2="150" y2="68"/>' +
+        '<line class="i-mark i-mark-d" x1="58" y1="94" x2="150" y2="94"/>' +
+        '<path class="i-arrow" d="M64 92V70M60.5 73.5 64 70l3.5 3.5M60.5 88.5 64 92l3.5-3.5"/>' +
+        '</svg>';
+    }
+  };
+  function illus(kind) { return (ILLUS[kind] || ILLUS.shelf)(); }
 
   /* ---------- triage plates ---------- */
   const AW = 168, AH = 126;
@@ -237,7 +348,7 @@ const Charts = (() => {
     return '<ul class="tw">' + s + '</ul>';
   }
 
-  return { series, rise, ring, empty, plate, tree, esc };
+  return { series, rise, empty, plate, tree, esc, jar, jarHero, illus };
 })();
 
 window.Charts = Charts;

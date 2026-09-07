@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<style>
+  @font-face { font-family: "Display"; src: url("display.ttf"); }
+  html, body { margin: 0; width: 1024px; height: 500px; overflow: hidden; }
+  body {
+    position: relative; color: #FFF3DF; font-family: "Display", Georgia, serif;
+    background:
+      radial-gradient(46% 78% at 26% 62%, rgba(255, 217, 138, 0.44), rgba(240, 166, 47, 0) 62%),
+      linear-gradient(122deg, #A24A16 0%, #77330E 52%, #421808 100%);
+  }
+  .grain { position: absolute; inset: 0; opacity: 0.09; mix-blend-mode: overlay;
+    background-image: repeating-radial-gradient(circle at 17% 43%, rgba(255,255,255,0.9) 0 0.6px, transparent 0.6px 3px),
+                      repeating-radial-gradient(circle at 63% 71%, rgba(255,255,255,0.7) 0 0.5px, transparent 0.5px 2.6px); }
+  .spec { position: absolute; border-radius: 50%; background: #FFE3B4; }
+  svg.mark { position: absolute; left: 74px; top: 46px; width: 408px; height: 408px; }
+  .copy { position: absolute; left: 486px; top: 150px; width: 484px; }
+  h1 { margin: 0; font-size: 118px; line-height: 0.94; letter-spacing: -0.03em; font-weight: 700;
+       text-shadow: 0 6px 34px rgba(49, 18, 4, 0.55); }
+  p { margin: 22px 0 0 5px; font-size: 31px; line-height: 1.24; color: #FFD98A; max-width: 470px; }
+  .rule { position: absolute; left: 491px; top: 128px; width: 78px; height: 5px; border-radius: 3px;
+          background: linear-gradient(90deg, #FFF3DA, #F0A62F); }
+</style>
+</head>
+<body>
+  <div class="grain"></div>
+  <div class="spec" style="left:614px;top:64px;width:5px;height:5px;opacity:.5"></div>
+  <div class="spec" style="left:906px;top:112px;width:4px;height:4px;opacity:.38"></div>
+  <div class="spec" style="left:788px;top:44px;width:3px;height:3px;opacity:.32"></div>
+  <div class="spec" style="left:952px;top:406px;width:4px;height:4px;opacity:.28"></div>
+  <div class="spec" style="left:46px;top:78px;width:4px;height:4px;opacity:.3"></div>
+
+  <svg class="mark" viewBox="18 18 72 72" aria-hidden="true">
+    <defs>
+      <linearGradient id="brine" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#FFDD95"/><stop offset="0.42" stop-color="#F5B341"/><stop offset="1" stop-color="#D2791A"/>
+      </linearGradient>
+      <radialGradient id="inner" cx="0.5" cy="0.74" r="0.6">
+        <stop offset="0" stop-color="#FFF6DC" stop-opacity="0.92"/><stop offset="1" stop-color="#FFF6DC" stop-opacity="0"/>
+      </radialGradient>
+      <linearGradient id="cap" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#F6E4C0"/><stop offset="1" stop-color="#C29A5E"/>
+      </linearGradient>
+      <linearGradient id="pane" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.22"/>
+        <stop offset="0.45" stop-color="#FFFFFF" stop-opacity="0.04"/>
+        <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.13"/>
+      </linearGradient>
+      <clipPath id="inside">
+        <path d="M41 37c0 4-7 5.5-7 13v22a11 11 0 0 0 11 11h18a11 11 0 0 0 11-11V50c0-7.5-7-9-7-13z"/>
+      </clipPath>
+      <filter id="drop" filterUnits="userSpaceOnUse" x="0" y="0" width="108" height="108">
+        <feGaussianBlur in="SourceAlpha" stdDeviation="2.6"/><feOffset dy="3"/>
+        <feFlood flood-color="#311204" flood-opacity="0.55"/><feComposite in2="SourceAlpha" operator="in"/>
+        <feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
+      </filter>
+      <filter id="bloom" filterUnits="userSpaceOnUse" x="0" y="0" width="108" height="108">
+        <feGaussianBlur stdDeviation="4.5"/>
+      </filter>
+    </defs>
+    <ellipse cx="54" cy="70" rx="19" ry="17" fill="#FFC55E" opacity="0.72" filter="url(#bloom)"/>
+    <g filter="url(#drop)">
+      <rect x="40" y="25" width="28" height="7.4" rx="3" fill="url(#cap)"/>
+      <rect x="43" y="26.6" width="19" height="1.8" rx="0.9" fill="#FFFDF4" opacity="0.6"/>
+      <rect x="42.6" y="32" width="22.8" height="5.6" rx="1.6" fill="#F7E7C8" opacity="0.34"/>
+      <path d="M41 37c0 4-7 5.5-7 13v22a11 11 0 0 0 11 11h18a11 11 0 0 0 11-11V50c0-7.5-7-9-7-13z" fill="url(#pane)"/>
+      <g clip-path="url(#inside)">
+        <rect x="30" y="55" width="48" height="35" fill="url(#brine)"/>
+        <ellipse cx="54" cy="74" rx="21" ry="15" fill="url(#inner)"/>
+        <circle cx="45" cy="72" r="3.1" fill="#FFFBEE" opacity="0.94"/>
+        <circle cx="61" cy="66" r="2.5" fill="#FFFBEE" opacity="0.9"/>
+        <circle cx="52" cy="61" r="2" fill="#FFFBEE" opacity="0.82"/>
+        <circle cx="64" cy="78" r="1.9" fill="#FFFBEE" opacity="0.72"/>
+        <circle cx="47" cy="81" r="1.5" fill="#FFFBEE" opacity="0.62"/>
+        <path d="M30 55q12-3 24 0t24 0" fill="none" stroke="#FFF6DC" stroke-width="2.2" stroke-linecap="round" opacity="0.85"/>
+      </g>
+      <path d="M41 37c0 4-7 5.5-7 13v22a11 11 0 0 0 11 11h18a11 11 0 0 0 11-11V50c0-7.5-7-9-7-13z" fill="none" stroke="#FFE8BE" stroke-width="1.7" stroke-linejoin="round" opacity="0.9"/>
+      <path d="M39.6 45v15" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" opacity="0.5"/>
+      <path d="M39.6 64v9" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" opacity="0.32"/>
+    </g>
+  </svg>
+
+  <div class="rule"></div>
+  <div class="copy">
+    <h1>Ferment</h1>
+    <p>A lab notebook for the living things in your kitchen.</p>
+  </div>
+</body>
+</html>
